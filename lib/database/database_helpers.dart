@@ -4,32 +4,32 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path_provider/path_provider.dart';
 
 // database table and column names
-final String tableWords = 'words';
+final String tableNotes = 'note';
 final String columnId = '_id';
-final String columnWord = 'word';
-final String columnFrequency = 'frequency';
+final String columnTitle = 'title';
+final String columnContent = 'content';
 
 // data model class
-class Word {
+class Note {
 
   int id;
-  String word;
-  int frequency;
+  String title;
+  String content;
 
-  Word();
+  Note(this.id, this.title, this.content);
 
   // convenience constructor to create a Word object
-  Word.fromMap(Map<String, dynamic> map) {
+  Note.fromMap(Map<String, dynamic> map) {
     id = map[columnId];
-    word = map[columnWord];
-    frequency = map[columnFrequency];
+    title = map[columnTitle];
+    content = map[columnContent];
   }
 
   // convenience method to create a Map from this Word object
   Map<String, dynamic> toMap() {
     var map = <String, dynamic>{
-      columnWord: word,
-      columnFrequency: frequency
+      columnTitle: title,
+      columnContent: content
     };
     if (id != null) {
       map[columnId] = id;
@@ -72,35 +72,54 @@ class DatabaseHelper {
   // SQL string to create the database
   Future _onCreate(Database db, int version) async {
     await db.execute('''
-              CREATE TABLE $tableWords (
+              CREATE TABLE $tableNotes (
                 $columnId INTEGER PRIMARY KEY,
-                $columnWord TEXT NOT NULL,
-                $columnFrequency INTEGER NOT NULL
+                $columnTitle TEXT NOT NULL,
+                $columnContent TEXT NOT NULL
               )
               ''');
   }
 
   // Database helper methods:
 
-  Future<int> insert(Word word) async {
+  Future<int> insert(Note note) async {
     Database db = await database;
-    int id = await db.insert(tableWords, word.toMap());
+    int id = await db.insert(tableNotes, note.toMap());
     return id;
   }
 
-  Future<Word> queryWord(int id) async {
+  Future<Note> queryNote(int id) async {
     Database db = await database;
-    List<Map> maps = await db.query(tableWords,
-        columns: [columnId, columnWord, columnFrequency],
+    List<Map> maps = await db.query(tableNotes,
+        columns: [columnId, columnTitle, columnContent],
         where: '$columnId = ?',
         whereArgs: [id]);
     if (maps.length > 0) {
-      return Word.fromMap(maps.first);
+      return Note.fromMap(maps.first);
     }
     return null;
   }
 
-// TODO: queryAllWords()
-// TODO: delete(int id)
-// TODO: update(Word word)
+  Future<List<Note>> queryAllNotes() async {
+    Database db = await database;
+    List<Map> maps = await db.query(tableNotes);
+    if (maps.length > 0) {
+      List<Note> notes = [];
+      maps.forEach((map) => notes.add(Note.fromMap(map)));
+      return notes;
+    }
+    return null;
+  }
+
+  Future<int> deleteNote(int id) async {
+    Database db = await database;
+    return await db.delete(tableNotes, where: '$columnId = ?', whereArgs: [id]);
+  }
+
+  Future<int> update(Note word) async {
+    Database db = await database;
+    return await db.update(tableNotes, word.toMap(),
+        where: '$columnId = ?', whereArgs: [word.id]);
+  }
+
 }
